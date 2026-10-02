@@ -11,17 +11,23 @@ def local_a(k, p_b_matrix, t_b_matrix, basis_type):
         h = x_right - x_left
 
         local_stiff_a = np.zeros((2, 2))
-        dpsi_dx = np.array([-1 / h, 1.0 / h])
+        dpsi_dx = np.array(
+            [-1 / h, 1.0 / h]
+        )  # Linear local basis functions derivatives from slides
         num_gauss_points = 3
-        xi_points, weights = np.polynomial.legendre.leggauss(num_gauss_points)
+        xi_points, weights = np.polynomial.legendre.leggauss(
+            num_gauss_points
+        )  # take gauss points and weights for integration
 
-        for i in range(num_gauss_points):
+        for i in range(num_gauss_points):  # Setup gauss coordinates and weights.
             x_phys = (h / 2.0) * xi_points[i] + (x_right + x_left) / 2.0
             w_phys = (h / 2.0) * weights[i]
 
             c_val = np.exp(x_phys)
 
-            for beta in range(2):
+            for beta in range(
+                2
+            ):  # Build local stiffness matrix using formula from my notes.
                 for alpha in range(2):
                     local_stiff_a[beta, alpha] += (
                         w_phys * c_val * dpsi_dx[beta] * dpsi_dx[alpha]
@@ -40,11 +46,13 @@ def build_a(num_basis_nodes, num_elements, p_b_matrix, t_b_matrix, basis_type):
         local_stiff_a = local_a(k, p_b_matrix, t_b_matrix, basis_type)
         num_local_basis = t_b_matrix.shape[0]  # num local basis functions per element
 
-        for beta in range(num_local_basis):
+        for beta in range(
+            num_local_basis
+        ):  # place local stiffness matrix into global stiffness matrix
             for alpha in range(num_local_basis):
 
-                m = t_b_matrix[beta, k]
-                n = t_b_matrix[alpha, k]
+                m = t_b_matrix[beta, k]  # beta is row
+                n = t_b_matrix[alpha, k]  # alpha is column
 
                 global_stiff_a[m, n] += local_stiff_a[beta, alpha]
 

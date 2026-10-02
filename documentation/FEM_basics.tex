@@ -1,0 +1,826 @@
+\documentclass[12pt, oneside]{book}
+
+% --- PACKAGES ---
+\usepackage{amsmath}       % Math equations
+\usepackage{dirtree}
+\usepackage{listings}
+\usepackage{xcolor}        % Colored text
+\usepackage{tcolorbox}     % Boxed text/equations
+\usepackage{tikz}          % Drawing and image overlays
+\usepackage{graphicx}      % Images
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref} % Interactive PDF links
+\usepackage[T1]{fontenc}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{bbm}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red},
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=lines,
+    backgroundcolor=\color{black!5},
+    breaklines=true,
+    mathescape=true, % Allows $...$ math inside comments to render properly
+    morekeywords={fn, class, pass, return, if, elif, else, for, in} % Adds your custom keywords
+}
+
+\begin{document}
+
+\pagenumbering{roman}
+\begin{titlepage}
+    \centering
+    
+    \vspace*{3cm} 
+    
+    {\Huge \textbf{FEM Basics}\par}
+    
+    \vspace*{3cm} 
+    \vfill
+    
+    {\small Oliver Jackson\par}
+    
+    \vspace*{0.5cm} 
+
+    {\small \today\par}
+\end{titlepage}
+
+
+\tableofcontents
+
+\cleardoublepage
+\pagenumbering{arabic}
+
+\chapter{Introduction}
+
+This document details the FEM Galerkin method. I included both the derivation of the method and am developing a 
+software package to implement the method in Python.
+
+\section{The weak form}
+
+We are considering problems of the ellipcic type in one dimension. 
+
+$$
+-\frac{d}{d x}\left(c(x) \frac{d u}{d x}\right)=f(x) \quad \text { with solution } u.
+$$
+
+The space $c^{k}(\bar{\Omega})$ is defined to be the set of all real-valved functions 
+a defined on $\bar{\Omega}$ (which is both $\Omega$ and $\partial \Omega$ ) with the property that 
+$u$ and its derivatives up to the $k^{\text {th }}$ order are all continuous on $\bar{\Omega}$. 
+A solution to $u$ is sought in the subspace
+
+$$
+C_{D}^{2}(\bar{\Omega})=\left\{u \in C^{2}(\bar{\Omega}): u=0 \text { on } \partial \Omega\right\} .
+$$
+
+Introduce the test function $v$ and the space of test functions to be $C_{D}^{2}(\bar{\Omega})$.
+
+$$
+-\nabla(c \cdot \nabla u)=f
+$$
+
+$$
+\int-\nabla(c \cdot \nabla u) \cdot v=\int f \cdot v.
+$$
+
+This equation holds for some $u \in C_{D}^{2}(\bar{\Omega})$ denoted $u_{h}$ and for all 
+$v \in C_{D}^{2}(\bar{\Omega})$ if and only if $u$ satisfies the original differential 
+equation. The next step is to apply green's identity to the left hand side. A quick 
+review of Green's identity. The weak form of a BVP is derived using greens 
+identity, which is the multi-dimensional form of integration by parts.
+
+$$
+\nabla \cdot(v \nabla u)=\nabla v \cdot \nabla u+v \Delta u.
+$$
+
+Then to obtain Greens identity integrate both sides over $\Omega$ and apply the divergence theorem
+
+$$
+\begin{aligned}
+& \Rightarrow \int_{\Omega} \nabla \cdot(v \nabla u)=\int_{\Omega} \nabla v \cdot \nabla u+\int_{\Omega} v \Delta u \\
+& \Rightarrow \int_{\partial \Omega} v \nabla u \cdot n=\int_{\Omega} \nabla v \cdot \nabla u+\int_{\Omega} v \Delta u \\
+& \Rightarrow-\int_{\Omega} v \Delta u=\int_{\Omega} \nabla v \cdot \nabla u-\int_{\partial \Omega} v \frac{\partial u}{\partial n}.
+\end{aligned}
+$$
+
+we know $V=0$ on $\partial \Omega$ so
+
+$$
+-\int_{\Omega} v \Delta u=\int_{\Omega} \nabla V \cdot \nabla u.
+$$
+
+So we get
+
+$$
+\int_{\Omega}-\nabla(c \cdot \nabla u) \cdot v=\int_{\Omega} c \nabla u \cdot \nabla v
+$$
+
+So the weak form of our elliptic problem is given by Find $u \in C_{D}^{2}(\bar{\Omega})$ such 
+that $\int_{\Omega} c \nabla u \cdot \nabla v=\int_{\Omega} fv$ for all $v \in C_{D}^{2}(\bar{\Omega})$.
+We introduce notation $(u, v)=\int_{\Omega} u \cdot v$ and bilinear operator $a$,
+
+$$
+a(u, v)=(f, v) \quad \forall v \in C_{D}^{2}(\bar{\Omega})
+$$
+
+Where $a(u, v) \equiv \int_{\Omega} c \nabla u \cdot \nabla v$. 
+
+\section{Weak form over a finite number of nodes}
+
+Define nodes on the interval $x_{0}<x_{1}<\cdots<x_{N}<x_{N+1}$. The space between the nodes $N$ are $h=x_{n}-x_{n-1}$ 
+where $n=0, \ldots, N+1$. As parameters to describe a function $v \in C_{D}^{2}(\bar{\Omega})$ we may choose the 
+values $\eta_{n}=V\left(x_{n}\right)$ at the node points $n=0, \ldots, N+1$. To construct functions $v \in C_{D}^{2}(\bar{\Omega})$ 
+we can define basis functions such that overlapping and neighboring hodes return a value one and disconnected nodes return zero.
+Linear, quadratic, or any other valid basis functions can be used to formulate these functions over each interval. Here we 
+define basis functions such that
+
+$$
+\phi_{j}\left(x_{i}\right)= \begin{cases}1 & \text { if } \quad i=j \\ 0 & \text { if } \quad i \neq j \quad i, j=1, \ldots, N.\end{cases}
+$$
+
+A function $v \in C_{D}^{2}(\bar{\Omega})$ then has the representation
+
+$$
+v(x)=\sum_{m=1}^{M} \eta_{m} \phi_{m}(x) \quad x \in[0,1].
+$$
+
+Then the FEM can now be formulated as: Find $u_{h} \in C_{D}^{2}(\bar{\Omega})$ such that
+
+$$
+a\left(u_{h}, v\right)=(f, v) \quad \forall v \in C_{D}^{2}(\bar{\Omega}).
+$$
+
+If $u_{h}$ satisfies the above then
+
+\begin{equation}
+a\left(u_{h}, \phi_{m}\right)=\left(f, \phi_{m}\right) \quad m=1, \ldots, M  \tag{*}
+\end{equation}
+
+Then by taking linear combinations we see $u_h$ satisfies $\xi$ since
+
+$$
+u_{h}(x)=\sum_{n=1}^{N} \xi_{n} \phi_{n}(x), \quad \xi_{n}=u_{h}\left(x_{n}\right)
+$$
+
+rewrite * like so
+
+$$
+\sum_{n=1}^{N} \xi_{n} a\left(\phi_{n}, \phi_{m}\right)=\left(f, \phi_{m}\right) \quad m=1, \ldots, M
+$$
+
+which is a linear system of equations with M equations and $N$ unknowus $\xi_{1}, \ldots, \xi_{N}$ which 
+we are solving for. In matrix form the linear system of equations can be written as
+
+$$
+A \xi=b
+$$
+
+Where $A$ is the $M \times N$ matrix with elements $A_{m n}=a\left(\phi_{n}, \phi_{m}\right)$ 
+called stiffness matrix. And where $\xi_n=\left(\xi_{1}, \ldots, \xi_{N}\right)$ and $b_m=\left(b_{1}, \ldots, b_{M}\right)$ 
+with $b_{m}=\left(f, \phi_{m}\right)$ are both column vectors and $b$ is the load vector. Row $m$ is test and column $n$ 
+is trail. 
+
+\section{General algorithm for stiffness matrix construction}
+
+Now we want to build a general algorithm to construct the stiffness matrix which decouples the geometric 
+shape of the mesh from the functional degrees of freedom (the nodes). The algorithm will be general in the 
+sense that any number of nodes $N$ can be chosen and the geometry, dimension, and basis type are separated through 
+if/else statements in the code. Further calculus and Jacobian matrix is required if a general function for the 
+construction of mesh element and nodes matrices is desired. Instead, the general framework advised by Prof He is to 
+add additional definitions for linear VS quadratic basis functions or $P_b$ and $T_b$ information matrices into if/else 
+statements. Inside the assembly code we will call these components (if/else statements) to construct the stiffness matrix.
+\par The $P$ matrix is an information matrix consisting of the coordinates of all nodes. It is a $D \times N$ matrix 
+where $D$ is dimension. In $1 D$ and $2 D$
+
+$$
+\begin{aligned}
+P_{1 D} & =\left(x_{1}, \ldots, x_{N}\right) \\
+P_{2 D} & =\binom{x_{1}, \ldots, x_{N}}{y_{1}, \ldots, y_{N}}
+\end{aligned}
+$$
+
+The $T$ matrix is an information matrix containing the indices of the nodes of each element. 
+Here the elements are the integral bounds over each interval. So the $T$ matrix holds the indices 
+of the elements $E_{k}$ where $k$ denotes the number of elements $k=1, \ldots, N-1$. 
+Define $N_b$ to be the number of basis functions required to construct one element. Then $T$ is a $N_b \times K$ matrix. 
+\par For the linear basis function case there are two basis functions per element so $N_b=2$ and $K=N-1$. 
+Then the $T$ matrix is given by
+
+$$
+T=\left(\begin{array}{lllll}
+1 & 2 & \cdots & N-2 & N-1 \\
+2 & 3 & \cdots & N-1 & N
+\end{array}\right). 
+$$
+
+Only when we have linear basis functions we can define
+
+\begin{center}
+  \textit{contains $\Omega$ points $\mathbf{P=P_{b}}$ where $b$ denotes basis node value}. \\
+  \textit{contains $\Omega$ elements $\mathbf{T=T_{b}}$ where $b$ denotes basis element value}.
+\end{center}
+
+When our domain is defined with quadratic basis functions instead of linear then the number of points needed per element
+increases but NOT the number of nodes $N$ in our domain. Then $P_b$ will contain the midpoints in addition to the two endpoints 
+to describe the quadratic curve. $T$ and $T_b$ then must also have an extra row so we know where this extra midpoint is physically 
+located in terms of its neighbors. Thus $P$ and $T$ contain information about the geometry of the system which is represented in the 
+element stiffness matrix. $T_{b}$ contains algebraic information used to map the element stiffness 
+matrix to the global stiffness matrix. $P_b$ contains algebraic information about basis function construction. Then for 
+quadratic basis $P \neq P_{b}$ and $T \neq T_{b}$. 
+\par Now consider the interval of a specific element 
+$E=\left[x_{n}, x_{n+1}\right]$. Then because our basis functions are defined for 
+$i \neq j$ such that $\phi_{i}\left(x_{j}\right)=0$ and $\phi_{i}\left(x_{i}\right)=1$, the only basis functions we 
+consider over this element $E$ are $\phi_{n}, \phi_{n+1}$. Note the following important property
+
+$$
+\left(\phi_{j}, \phi_{j+1}\right)=\left(\phi_{j+1}, \phi_{j}\right).
+$$
+
+Then we define local basis function $\psi$ as $\phi$ over the interval E.
+Recall the linear basis functions:
+
+$$
+\phi_{n}(x)=\left\{\begin{array}{cl}
+\frac{x-x_{n-1}}{h} & \text { for } x \in\left[x_{n-1}, x_{n}\right] \\
+\frac{x_{n+1}-x}{h} & \text { for } x \in\left[x_{n}, x_{n+1}\right] \\
+0 & \text { else }
+\end{array}\right.
+$$
+
+Then define the local basis functions for an element $E=\left[x_{n}, x_{n+1}\right]$. On this element we have 
+contributions from the positive edge of $\phi_{n+1}$ and negative from $\phi_{n}$. Call the negative slope $\psi_{1}$  
+and the positive slope $\psi_{2}$ given by
+
+$$
+\begin{aligned}
+& \psi_{1}=\frac{x_{n+1}-x}{h} \text { for } x \in\left[x_{n}, x_{n+1}\right] \\
+& \psi_{2}=\frac{x-x_{n}}{h} \text { for } x \in\left[x_{n}, x_{n+1}\right]. 
+\end{aligned}
+$$
+
+So on one element $E$ we have two local basis functions denoted $N_b=2$ for linear global basis functions 
+and the total number of global basis functions is $N$. We need two points $\left[x_{n}, x_{n+1}\right]$ to 
+compute $\psi_{1}, \psi_{2}$ that are extracted directly from the $P_{b}$ matrix using the indices from the Tb matrix:
+
+$$
+\begin{aligned}
+& x_{n}^{(k)}=P_{b}\left(1, T_{b}(1, k)\right) \\
+& x_{n+1}^{(k)}=P_{b}\left(1, T_{b}(2, k)\right)
+\end{aligned}
+$$
+
+There are four non-zero local integrals on $E_{k}=\left[x_{n}, x_{n+1}\right]$
+
+$$
+\begin{aligned}
+& a_{\beta \alpha}^{k}=a^{k}\left(\psi_{\beta}, \psi_{\alpha}\right)  \\
+& a_{\beta \alpha}^{k}=\int_{x_{n}^{k}}^{x_{n+1}^{k}} c\left(\psi_{\beta}^{\prime} \psi_{\alpha}^{\prime}\right) d x \text { for } \beta, \alpha \in\{1,2\}
+\end{aligned}
+$$
+
+This means the local integral should be assembled to the global matrix entry $a_{m n}$. An element is given 
+by $E_{k}=\left[x_{n}^{k}, x_{n+1}^{k}\right]$ for $k=1, \ldots, N-1$. We compute an $N_{b} \times N_{b}$ 
+element stiffness matrix $a^{k}$ with indices $\alpha, \beta \in\{1,2\}$ for the linear case. Because $\beta$ 
+is the test function index it indicates the rows of $a^{k}$ and $\alpha$ the columns.
+
+$$
+a_{\beta \alpha}^{k}=\left[\begin{array}{cc}
+a_{11}^{k} & a_{12}^{k} \\
+a_{21}^{k} & a_{22}^{k}
+\end{array}\right]=\left[\begin{array}{ll}
+\int\left(\psi_{1}^{\prime} \psi_{1}^{\prime}\right. & \int c \psi_{1}^{\prime} \psi_{2}^{\prime} \\
+\int c \psi_{2}^{\prime} \psi_{1}^{\prime} & \int c \psi_{2}^{\prime} \psi_{2}^{\prime}
+\end{array}\right]
+$$
+
+To map the local element stiffness matrix $a_{\beta \alpha}^{k}$ into the global $M \times N$ matrix $A$ we 
+use the topology matrix $T_{b}$ to route the indices.
+
+$$
+\begin{aligned}
+& \text { Global row } m=T_{b}(\beta, k) \\
+& \text { Global column } n=T_{b}(\alpha, k)
+\end{aligned}
+$$
+
+I write the global entry of $A$ as $A_{m n}$ and the local element stiffness matrix as $a_{\beta \alpha}^{k}$. I 
+include $\delta_{m, T_{b}(\beta, k)}$ as a way to search for the global row index and $\delta_{n}, T_{b}(\alpha, k)$ 
+as a way to search for the global column index.
+
+$$
+A_{m n}=\sum_{n=1}^{N-1} \sum_{\beta=1}^{N_{b}} \sum_{\alpha=1}^{N_{b}} a_{\beta \alpha}^{k} \cdot \delta_{m, T_{b}(\beta, k)} \cdot \delta_{n, T_{b}(\alpha, k)}
+$$
+
+\chapter{Programming}
+\section{File structure}
+To program this we can utilize the following file structure: 
+
+\vspace{1cm}
+\dirtree{%
+.1 FEMelliptic/.
+.2 src/.
+.3 main.py.
+.4 build\_stiffness\_matrices.py.
+.4 gaussian\_quadrature.py.
+.4 boundary\_conditions.py.
+.4 error.py.
+.4 basis.py.
+.4 information\_matrices.py.
+.4 functions.py.
+.3 documentation/.
+.4 FEM\_basics.tex.
+}
+\vspace{1cm}
+
+The assembly code contains the general algorithm for stiffness matrix construction. The components contains the 
+if/else statements to define the geometry and basis functions. The main.py file is the driver code that 
+calls the assembly code and the components to construct the stiffness matrix.
+
+\section{main.py}
+
+The build\_stiffness\_matrices.py file contains the general algorithms provided for $A_{mn}$ and $b_m$. Here, instead of dirac delta functions we can use for loops to search for the row and column indices of the stiffness matrix. 
+
+In main.py we will define the following parameters:
+
+\begin{lstlisting}
+N = int # number of internal nodes in domain $N$ which corresponds to the number of unknowns \\
+K = N+1 # number of elements \\
+N\_b = int # number of basis functions per element \\
+D = int # dimension of the problem \\
+gauss\_point\_number = int # number of gauss points for integration \\
+
+x = linspace(0, 1, N+2) # domain \\
+
+stiffness\_matrix = build\_stiffness\_matrix(N, N\_b, K, P\_b, T\_b, c\_func, basis\_type, gauss\_point\_number) \\
+load\_matrix = build\_load\_matrix(N, P\_b, T\_b, f\_func, basis\_type, gauss\_point\_number) \\
+
+left\_boundary = 0 # homogeneous Dirichlet boundary condition \\
+right\_boundary = 0
+stiffness\_matrix, load\_matrix = apply\_dirichlet\_linear(stiffness\_matrix, load\_matrix, left\_boundary, right\_boundary) \\
+
+analytical\_solution = functions.solution\_func(x) \\
+FEM\_solution = np.linalg.solve(stiffness\_matrix, load\_matrix) \\
+error = error(analytical\_solution.flatten(), FEM\_solution.flatten()) \\
+\end{lstlisting}
+
+\section{build\_stiffness\_matrices.py}
+
+build\_stiffness\_matrices.py contains the following functions:
+
+\begin{lstlisting}
+fn build\_local\_stiffness\_matrix(c\_func, basis\_type, left\_node, right\_node, gauss\_point\_number, N\_b) \\
+    local\_stiffness\_matrix = zeros(N\_b, N\_b) \\
+    for beta in range(1, N\_b + 1): \\
+        for alpha in range(1, N\_b + 1): \\
+            fn integrand(x) \\
+                d\_psi\_beta = basis\_type.derivative(beta, left\_node, right\_node, x) \\
+                d\_psi\_alpha = basis\_type.derivative(alpha, left\_node, right\_node, x) \\
+                return c\_func(x) * d\_psi\_beta * d\_psi\_alpha \\
+            local\_stiffness\_matrix[beta - 1, alpha - 1] = gauss\_integrate(
+                integrand, 
+                left\_node, 
+                right\_node, 
+                gauss\_point\_number) \\
+    return local\_stiffness\_matrix # returns the local stiffness matrix for one element (2x2 for linear) \\
+
+
+fn build\_stiffness\_matrix(N, N\_b, K, P\_b, T\_b, c\_func, basis\_type, gauss\_point\_number) \\
+    stiffness\_matrix = sparse(N+2, N+2) \\
+    for k in range(K): \\
+        left\_node = P\_b[0, T\_b[0, k]] \\
+        right\_node = P\_b[0, T\_b[1, k]] \\
+        local\_stiffness\_matrix = build\_local\_stiffness\_matrix(
+            c\_func,
+            basis\_type, # basis.linear or basis.quadratic
+            left\_node,
+            right\_node,
+            gauss\_point\_number)\\
+        for beta in range(1, N\_b + 1): \\
+            for alpha in range(1, N\_b + 1): \\
+                stiffness\_matrix[T\_b[beta - 1, k], T\_b[alpha - 1, k]] += local\_stiffness\_matrix[beta - 1, alpha - 1] \\
+    return stiffness\_matrix # returns the global stiffness matrix (NxN) \\
+
+fn build\_load\_matrix(N, N\_b, K, P\_b, T\_b, f\_func, basis\_type, gauss\_point\_number) \\
+    load\_matrix = zeros(N+2, 1) \\
+    for k in range(K): \\
+        left\_node = P\_b[0, T\_b[0, k]] \\
+        right\_node = P\_b[0, T\_b[1, k]] \\
+        for beta in range(1, N\_b + 1): \\
+            fn integrand(x) \\
+                psi\_beta = basis\_type.\_\_call\_\_(beta, left\_node, right\_node, x)
+                return f\_func(x) * psi\_beta \\
+            load\_matrix[T\_b[beta - 1, k]] += gauss\_integrate(
+                integrand, 
+                left\_node, 
+                right\_node, 
+                gauss\_point\_number
+            ) \\
+    return load\_matrix # returns the global load matrix (Nx1) \\
+\end{lstlisting}
+
+\section{basis.py}
+            
+File for basis functions basis.py contains the following functions:
+
+\begin{lstlisting}
+class linear
+    fn derivative(beta, left\_node, right\_node) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return -1/h \\
+        elif beta == 2: \\
+            return 1/h \\
+        else: \\
+            raise ValueError("Invalid beta index for linear basis function") \\
+    fn \_\_call\_\_(beta, left\_node, right\_node, x) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return (right\_node - x) / h \\
+        elif beta == 2: \\
+            return (x - left\_node) / h \\
+class quadratic
+    fn derivative(beta, left\_node, right\_node, x) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return (1/h) * (4 * (x - left\_node) - 3) \\
+        elif beta == 2: \\
+            return (1/h) * (4 * (x - left\_node) - 1) \\
+        elif beta == 3: \\
+            return (1/h) * (-8 * (x - left\_node) + 4) \\
+        else: \\
+            raise ValueError("Invalid beta index for quadratic basis function") \\
+    fn \_\_call\_\_(beta, left\_node, right\_node, x) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return 2 * ((x - left\_node)/h)**2 - 3 * ((x - left\_node)/h) + 1
+        if beta == 2: \\
+            return 2 * ((x - left\_node)/h)**2 - ((x - left\_node)/h)
+        if beta == 3: \\
+            return -4 * ((x - left\_node)/h)**2 + ((x - left\_node)/h)
+\end{lstlisting}
+
+\section{gaussian\_quadrature.py}
+
+File for guassian quadrature gaussian\_quadrature.py contains the following functions:
+
+\begin{lstlisting}
+fn generate\_gauss\_reference\_1D(gauss\_point\_number)
+    if gauss\_point\_number == 2:
+        gauss\_coefficient\_reference\_1D = [1.0, 1.0] \\
+        gauss\_point\_reference\_1D = [-1.0/sqrt(3), 1.0/sqrt(3)]
+    elif gauss\_point\_number == 4:
+        gauss\_coefficient\_reference\_1D = [0.3478548451, 
+        0.3478548451, 0.6521451549, 0.6521451549] \\
+        gauss\_point\_reference\_1D = [0.8611363116, 
+        -0.8611363116, 0.3399810436, -0.3399810436] \\
+    elif gauss\_point\_number == 8:
+        gauss\_coefficient\_reference\_1D = [0.1012285363, 
+        0.1012285363, 0.2223810345, 0.2223810345, 0.3137066459, 
+        0.3137066459, 0.3626837834, 0.3626837834] \\
+        gauss\_point\_reference\_1D = [0.9602898565, 
+        -0.9602898565, 0.7966664774, -0.7966664774, 0.5255324099, 
+        -0.5255324099, 0.1834346425, -0.1834346425] \\
+    else:
+        raise ValueError("Unsupported number of Gauss points. Choose 2, 4, or 8.")
+    return gauss\_coefficient\_reference\_1D, gauss\_point\_reference\_1D
+
+fn generate\_gauss\_local\_1D(gauss\_coefficient\_reference\_1D, gauss\_point\_reference\_1D, lower\_bound, upper\_bound)
+    gauss\_coefficient\_local\_1D = []
+    gauss\_point\_local\_1D = []
+
+    for i in range(len(gauss\_coefficient\_reference\_1D))
+        local\_coeff = (upper\_bound - lower\_bound) * gauss\_coefficient\_reference\_1D[i] / 2.0
+        local\_point = (upper\_bound - lower\_bound) * gauss\_point\_reference\_1D[i] / 2.0 + (upper\_bound + lower\_bound) / 2.0
+        gauss\_coefficient\_local\_1D.append(local\_coeff)
+        gauss\_point\_local\_1D.append(local\_point)
+    return gauss\_coefficient\_local\_1D, gauss\_point\_local\_1D
+
+fn gauss\_integrate(integrand\_func, left\_node, right\_node, gauss\_point\_number)
+    ref\_coeffs, ref\_points = generate\_gauss\_reference\_1D(gauss\_point\_number)
+    local\_coeffs, local\_points = generate\_gauss\_local\_1D(ref\_coeffs, ref\_points, left\_node, right\_node)
+    integral = 0.0
+    for i in range(gauss\_point\_number)
+        integral += local\_coeffs[i] * integrand\_func(local\_points[i])
+    return integral
+\end{lstlisting}
+
+\section{information\_matrices.py}
+
+File for generating the P, T, P\_b, and T\_b information matrices 
+for linear and quadratic 1D. The information matrices are stored in information\_matrices.py and contain the following functions:
+
+\begin{lstlisting}
+class linear 
+    fn P(N)
+        return np.array([np.linspace(0, 1, N+2)]) # returns the P matrix for 1D linear basis functions
+    fn T(N)
+        K = N + 1
+        return np.array([
+            [k for k in range(K)], 
+            [k + 1 for k in range(K)]
+        ]) # returns the T matrix for 1D linear basis functions
+    fn P\_b\_linear(N)
+        return linear.P(N) 
+    fn T\_b\_linear(N)
+        return linear.T(N)
+
+class quadratic
+    # Implement similar functions for quadratic basis functions
+\end{lstlisting}
+
+\section{functions.py}
+
+functions.py contains the c\_funct and f\_func functions:
+
+\begin{lstlisting}
+class c\_func
+    fn hw\_1(x)
+        return exp(x) 
+class f\_func
+    fn hw\_1(x)
+        return -exp(x) * (cos(x) - 2 * sin(x) - x * cos(x) - x * sin(x))
+class solution\_func(x)
+    return x * cos(x) 
+\end{lstlisting}
+
+\section{boundary\_conditions.py and error.py}
+
+The boundary\_conditions.py file contains the following functions:
+
+\begin{lstlisting}
+class dirichlet
+    fn apply\_dirichlet\_linear(stiffness\_matrix, load\_matrix, left\_boundary, right\_boundary)
+        stiffness\_matrix[0, :] = 0
+        stiffness\_matrix[0, 0] = 1
+        load\_matrix[0] = left\_boundary
+
+        stiffness\_matrix[-1, :] = 0
+        stiffness\_matrix[-1, -1] = 1
+        load\_matrix[-1] = right\_boundary
+
+        return stiffness\_matrix, load\_matrix
+
+class robin
+    fn apply\_robin\_linear(stiffness\_matrix, load\_matrix)
+        pass # Implement the Robin boundary condition logic here
+\end{lstlisting}
+
+The error.py file contains the following functions:
+
+\begin{lstlisting}
+fn error(analytical\_solution, FEM\_solution):
+    abs\_max\_difference = np.max(np.abs(analytical\_solution - FEM\_solution))
+    return abs\_max\_difference
+\end{lstlisting}
+
+       
+
+
+
+
+
+NOTATION KEY
+
+- $N=$ number of internal nodes in domain $N$ which corresponds to the \# of cukhowns \\
+- $k=G$ lobal element index $(k=1, \ldots, N-1) k$ \\
+- $m=$ Global test basis index $(1, \ldots, M)$ maps rows of $A M$ \\
+- $n=$ Global trail basis index $(1, \ldots, N)$ maps to columns of $A n$ \\
+- $\beta=$ local test basis index $\beta \in\{1,2\}$ beta \\
+- $\alpha=$ local trail basis index $\alpha \in\{1,2\}$ alpha \\
+- $\xi_{n}=$ global trial coefficients $x_{i}$ \\
+- $\eta_{m}=$ global test coefficients eta \\
+- $a_{\beta \alpha}^{k}=$ local stiffness matrix local-a \\
+- domain $=X=x_{0}, \ldots, x_{N+1} \quad x$ \\
+- $T, T_{b}=$ topology information matrix $T$-matrix, $T$ - $b$-matrix \\
+- $P, P_{b}=$ index information matrix $P$-matrix, $P$ - $b$-matrix \\
+
+\end{document}
+
+\section{main.py}
+
+The build\_stiffness\_matrices.py file contains the general algorithms provided for $A_{mn}$ and $b_m$. Here, instead of 
+dirac delta functions we can use for loops to search for the row and column indices of the stiffness matrix. 
+
+In main.py we will define the following parameters:
+
+N = int # number of internal nodes in domain $N$ which corresponds to the number of unknowns \\
+K = N+1 # number of elements \\
+N\_b = int # number of basis functions per element \\
+D = int # dimension of the problem \\
+gauss\_point\_number = int # number of gauss points for integration \\
+
+x = linspace(0, 1, N+2) # domain \\
+
+stiffness\_matrix = build\_stiffness\_matrix(N, N\_b, K, P\_b, T\_b, c\_func, basis\_type, gauss\_point\_number) \\
+load\_matrix = build\_load\_matrix(N, P\_b, T\_b, f\_func, basis\_type, gauss\_point\_number) \\
+
+left\_boundary = 0 # homogeneous Dirichlet boundary condition \\
+right\_boundary = 0
+stiffness\_matrix, load\_matrix = apply\_dirichlet\_linear(stiffness\_matrix, load\_matrix, left\_boundary, right\_boundary) \\
+
+analytical\_solution = functions.solution\_func(x) \\
+FEM\_solution = np.linalg.solve(stiffness\_matrix, load\_matrix) \\
+error = error(analytical\_solution.flatten(), FEM\_solution.flatten()) \\
+
+\section{build\_stiffness\_matrices.py}
+
+build\_stiffness\_matrices.py contains the following functions:
+
+fn build\_local\_stiffness\_matrix(c\_func, basis\_type, left\_node, right\_node, gauss\_point\_number, N\_b) \\
+    local\_stiffness\_matrix = zeros(N\_b, N\_b) \\
+    for beta in range(1, N\_b + 1): \\
+        for alpha in range(1, N\_b + 1): \\
+            fn integrand(x) \\
+                d\_psi\_beta = basis\_type.derivative(beta, left\_node, right\_node, x) \\
+                d\_psi\_alpha = basis\_type.derivative(alpha, left\_node, right\_node, x) \\
+                return c\_func(x) * d\_psi\_beta * d\_psi\_alpha \\
+            local\_stiffness\_matrix[beta - 1, alpha - 1] = gauss\_integrate(
+                integrand, 
+                left\_node, 
+                right\_node, 
+                gauss\_point\_number) \\
+    return local\_stiffness\_matrix # returns the local stiffness matrix for one element (2x2 for linear) \\
+
+
+fn build\_stiffness\_matrix(N, N\_b, K, P\_b, T\_b, c\_func, basis\_type, gauss\_point\_number) \\
+    stiffness\_matrix = sparse(N+2, N+2) \\
+    for k in range(K): \\
+        left\_node = P\_b[0, T\_b[0, k]] \\
+        right\_node = P\_b[0, T\_b[1, k]] \\
+        local\_stiffness\_matrix = build\_local\_stiffness\_matrix(
+            c\_func,
+            basis\_type, # basis.linear or basis.quadratic
+            left\_node,
+            right\_node,
+            gauss\_point\_number)\\
+        for beta in range(1, N\_b + 1): \\
+            for alpha in range(1, N\_b + 1): \\
+                stiffness\_matrix[T\_b[beta - 1, k], T\_b[alpha - 1, k]] += local\_stiffness\_matrix[beta - 1, alpha - 1] \\
+    return stiffness\_matrix # returns the global stiffness matrix (NxN) \\
+
+fn build\_load\_matrix(N, N\_b, K, P\_b, T\_b, f\_func, basis\_type, gauss\_point\_number) \\
+    load\_matrix = zeros(N+2, 1) \\
+    for k in range(K): \\
+        left\_node = P\_b[0, T\_b[0, k]] \\
+        right\_node = P\_b[0, T\_b[1, k]] \\
+        for beta in range(1, N\_b + 1): \\
+            fn integrand(x) \\
+                psi\_beta = basis\_type.\_\_call\_\_(beta, left\_node, right\_node, x)
+                return f\_func(x) * psi\_beta \\
+            load\_matrix[T\_b[beta - 1, k]] += gauss\_integrate(
+                integrand, 
+                left\_node, 
+                right\_node, 
+                gauss\_point\_number
+            ) \\
+    return load\_matrix # returns the global load matrix (Nx1) \\
+
+
+\section{basis.py}
+            
+File for basis functions basis.py contains the following functions:
+
+class linear
+    fn derivative(beta, left\_node, right\_node) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return -1/h \\
+        elif beta == 2: \\
+            return 1/h \\
+        else: \\
+            raise ValueError("Invalid beta index for linear basis function") \\
+    fn \_\_call\_\_(beta, left\_node, right\_node, x) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return (right\_node - x) / h \\
+        elif beta == 2: \\
+            return (x - left\_node) / h \\
+class quadratic
+    fn derivative(beta, left\_node, right\_node, x) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return (1/h) * (4 * (x - left\_node) - 3) \\
+        elif beta == 2: \\
+            return (1/h) * (4 * (x - left\_node) - 1) \\
+        elif beta == 3: \\
+            return (1/h) * (-8 * (x - left\_node) + 4) \\
+        else: \\
+            raise ValueError("Invalid beta index for quadratic basis function") \\
+    fn \_\_call\_\_(beta, left\_node, right\_node, x) \\
+        h = right\_node - left\_node \\
+        if beta == 1: \\
+            return 2 * ((x - left\_node)/h)**2 - 3 * ((x - left\_node)/h) + 1
+        if beta == 2: \\
+            return 2 * ((x - left\_node)/h)**2 - ((x - left\_node)/h)
+        if beta == 3: \\
+            return -4 * ((x - left\_node)/h)**2 + ((x - left\_node)/h)
+
+\section{gaussian\_quadrature.py}
+
+File for guassian quadrature gaussian\_quadrature.py contains the following functions:
+
+fn generate\_gauss\_reference\_1D(gauss\_point\_number)
+    if gauss\_point\_number == 2:
+        gauss\_coefficient\_reference\_1D = [1.0, 1.0] \\
+        gauss\_point\_reference\_1D = [-1.0/sqrt(3), 1.0/sqrt(3)]
+    elif gauss\_point\_number == 4:
+        gauss\_coefficient\_reference\_1D = [0.3478548451, 
+        0.3478548451, 0.6521451549, 0.6521451549] \\
+        gauss\_point\_reference\_1D = [0.8611363116, 
+        -0.8611363116, 0.3399810436, -0.3399810436] \\
+    elif gauss\_point\_number == 8:
+        gauss\_coefficient\_reference\_1D = [0.1012285363, 
+        0.1012285363, 0.2223810345, 0.2223810345, 0.3137066459, 
+        0.3137066459, 0.3626837834, 0.3626837834] \\
+        gauss\_point\_reference\_1D = [0.9602898565, 
+        -0.9602898565, 0.7966664774, -0.7966664774, 0.5255324099, 
+        -0.5255324099, 0.1834346425, -0.1834346425] \\
+    else:
+        raise ValueError("Unsupported number of Gauss points. Choose 2, 4, or 8.")
+    return gauss\_coefficient\_reference\_1D, gauss\_point\_reference\_1D
+
+fn generate\_gauss\_local\_1D(gauss\_coefficient\_reference\_1D, gauss\_point\_reference\_1D, lower\_bound, upper\_bound)
+    gauss\_coefficient\_local\_1D = []
+    gauss\_point\_local\_1D = []
+
+    for i in range(len(gauss\_coefficient\_reference\_1D))
+        local\_coeff = (upper\_bound - lower\_bound) * gauss\_coefficient\_reference\_1D[i] / 2.0
+        local\_point = (upper\_bound - lower\_bound) * gauss\_point\_reference\_1D[i] / 2.0 + (upper\_bound + lower\_bound) / 2.0
+        gauss\_coefficient\_local\_1D.append(local\_coeff)
+        gauss\_point\_local\_1D.append(local\_point)
+    return gauss\_coefficient\_local\_1D, gauss\_point\_local\_1D
+
+fn gauss\_integrate(integrand\_func, left\_node, right\_node, gauss\_point\_number)
+    ref\_coeffs, ref\_points = generate\_gauss\_reference\_1D(gauss\_point\_number)
+    local\_coeffs, local\_points = generate\_gauss\_local\_1D(ref\_coeffs, ref\_points, left\_node, right\_node)
+    integral = 0.0
+    for i in range(gauss\_point\_number)
+        integral += local\_coeffs[i] * integrand\_func(local\_points[i])
+    return integral
+
+\section{information\_matrices.py}
+
+File for generating the P, T, P\_b, and T\_b information matrices 
+for linear and quadratic 1D. The information matrices are stored in information\_matrices.py and contain the following functions:
+
+class linear 
+    fn P(N)
+        return np.array([np.linspace(0, 1, N+2)]) # returns the P matrix for 1D linear basis functions
+    fn T(N)
+        K = N + 1
+        return np.array([
+            [k for k in range(K)], 
+            [k + 1 for k in range(K)]
+        ]) # returns the T matrix for 1D linear basis functions
+    fn P\_b\_linear(N)
+        return linear.P(N) 
+    fn T\_b\_linear(N)
+        return linear.T(N)
+
+class quadratic
+    # Implement similar functions for quadratic basis functions
+
+\section{functions.py}
+
+functions.py contains the c\_funct and f\_func functions:
+
+class c\_func
+    fn hw\_1(x)
+        return exp(x) 
+class f\_func
+    fn hw\_1(x)
+        return -exp(x) * (cos(x) - 2 * sin(x) - x * cos(x) - x * sin(x))
+class solution\_func(x)
+    return x * cos(x) 
+
+\section{boundary\_conditions.py and error.py}
+
+The boundary\_conditions.py file contains the following functions:
+
+class dirichlet
+    fn apply\_dirichlet\_linear(stiffness\_matrix, load\_matrix, left\_boundary, right\_boundary)
+        stiffness\_matrix[0, :] = 0
+        stiffness\_matrix[0, 0] = 1
+        load\_matrix[0] = left\_boundary
+
+        stiffness\_matrix[-1, :] = 0
+        stiffness\_matrix[-1, -1] = 1
+        load\_matrix[-1] = right\_boundary
+
+        return stiffness\_matrix, load\_matrix
+
+class robin
+    fn apply\_robin\_linear(stiffness\_matrix, load\_matrix)
+        pass # Implement the Robin boundary condition logic here
+
+The error.py file contains the following functions:
+
+fn error(analytical\_solution, FEM\_solution):
+    abs\_max\_difference = np.max(np.abs(analytical\_solution - FEM\_solution))
+    return abs\_max\_difference
+
