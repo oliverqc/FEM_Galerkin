@@ -22,7 +22,7 @@ def build_local_stiffness_matrix(
 
 def build_stiffness_matrix(N, N_b, K, P_b, T_b, c_func, basis_type, gauss_point_number):
     # Using np.zeros to create a dense matrix (numpy.linalg.solve requires dense matrices)
-    stiffness_matrix = np.zeros((N + 2, N + 2))
+    stiffness_matrix = np.zeros((P_b.shape[1], P_b.shape[1]))
     for k in range(K):
         left_node = P_b[0, T_b[0, k]]
         right_node = P_b[0, T_b[1, k]]
@@ -41,7 +41,7 @@ def build_stiffness_matrix(N, N_b, K, P_b, T_b, c_func, basis_type, gauss_point_
 
 
 def build_load_matrix(N, N_b, K, P_b, T_b, f_func, basis_type, gauss_point_number):
-    load_matrix = np.zeros((N + 2, 1))
+    load_matrix = np.zeros((P_b.shape[1], 1))
     for k in range(K):
         left_node = P_b[0, T_b[0, k]]
         right_node = P_b[0, T_b[1, k]]

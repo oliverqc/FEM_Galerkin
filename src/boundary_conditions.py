@@ -1,15 +1,20 @@
 class dirichlet:
     @staticmethod
-    def apply_dirichlet_linear(
-        stiffness_matrix, load_matrix, left_boundary, right_boundary
+    def apply_dirichlet(
+        stiffness_matrix,
+        load_matrix,
+        left_bc_value,
+        right_bc_value,
+        left_node_index,
+        right_node_index,
     ):
-        stiffness_matrix[0, :] = 0.0
-        stiffness_matrix[0, 0] = 1.0
-        load_matrix[0] = left_boundary
+        stiffness_matrix[left_node_index, :] = 0.0
+        stiffness_matrix[left_node_index, left_node_index] = 1.0
+        load_matrix[left_node_index] = left_bc_value
 
-        stiffness_matrix[-1, :] = 0.0
-        stiffness_matrix[-1, -1] = 1.0
-        load_matrix[-1] = right_boundary
+        stiffness_matrix[right_node_index, :] = 0.0
+        stiffness_matrix[right_node_index, right_node_index] = 1.0
+        load_matrix[right_node_index] = right_bc_value
 
         return stiffness_matrix, load_matrix
 
