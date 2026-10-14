@@ -70,4 +70,3 @@ for K in K_values:
 order_of_convergence = np.log(errors[-2] / errors[-1]) / np.log(
     K_values[-1] / K_values[-2]
 )
-print(order_of_convergence)
