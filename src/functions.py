@@ -17,3 +17,7 @@ class solution_func:
     @staticmethod
     def hw_1(x):
         return x * np.cos(x)
+
+    @staticmethod
+    def hw_1_deriv(x):
+        return np.cos(x) - x * np.sin(x)
