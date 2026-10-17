@@ -317,6 +317,24 @@ $$
 A_{m n}=\sum_{k=1}^{K} \sum_{\beta=1}^{N_{b}} \sum_{\alpha=1}^{N_{b}} a_{\beta \alpha}^{k} \cdot \delta_{m, T_{b}(\beta, k)} \cdot \delta_{n, T_{b}(\alpha, k)}
 $$
 
+\section{Neumann and Robin Boundary Conditions}
+
+When applying Neumann or Robin boundary conditions, the boundary terms resulting from Green's identity are non-zero and must be directly incorporated into the global linear system $A \xi = b$. Recall the boundary terms from the general weak formulation evaluated at the endpoints $x=a$ and $x=b$:
+
+$$-c(b)u'(b)v(b) + c(a)u'(a)v(a) + \int_{a}^{b} c u' v' dx = \int_{a}^{b} f v dx$$
+
+.
+
+For a Neumann condition $u'(a) = r_a$ at the left boundary, substituting $r_a$ and moving the known value to the right-hand side of the equation results in adding $-r_a c(a)$ to the first entry of the load vector $b_0$. Similarly, a Neumann condition $u'(b) = r_b$ at the right boundary results in adding $r_b c(b)$ to the final load vector entry $b_{N+1}$.
+
+For a Robin boundary condition at the right boundary, defined as $u'(b) + q_b u(b) = p_b$, we substitute $u'(b) = p_b - q_b u(b)$ into the weak form. Rearranging the equation to group the unknown trial functions $u$ on the left and the known source terms on the right yields:
+
+$$q_b c(b)u(b)v(b) + \int_{a}^{b} c u' v' dx = \int_{a}^{b} f v dx + p_b c(b)v(b) - c(a)u'(a)v(a)$$
+
+.
+
+In the matrix formulation, because $q_b c(b)u(b)v(b)$ depends on the unknown $u$, we add $q_b c(b)$ to the corresponding diagonal entry of the global stiffness matrix $A_{N+1, N+1}$. The known term $p_b c(b)v(b)$ dictates that we add $p_b c(b)$ to the corresponding final entry of the load vector $b_{N+1}$.
+
 \chapter{Programming}
 \section{File structure}
 To program this we can utilize the following file structure: 
