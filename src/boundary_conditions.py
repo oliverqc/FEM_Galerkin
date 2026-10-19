@@ -23,6 +23,7 @@ class neumann:
 class robin:
     @staticmethod
     def apply_left(stiffness_matrix, load_matrix, c_val_at_a, q_a, p_a, left_node_index):
+        # Adds qbc(b) to the corresponding diagonal entry of the global stiffness matrix A(N+1,N+1).
         stiffness_matrix[left_node_index, left_node_index] -= q_a * c_val_at_a
         load_matrix[left_node_index] -= p_a * c_val_at_a
         return stiffness_matrix, load_matrix

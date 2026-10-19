@@ -33,7 +33,6 @@ def compute_errors(K, T_b, P_b, basis_type, gauss_point_number, N_b, FEM_solutio
             if diff > L_inf_error:
                 L_inf_error = diff
 
-    # Final calculations taking the square root of the global integrals
     L2_error = np.sqrt(L2_error_sq)
     H1_semi_error = np.sqrt(H1_semi_error_sq)
     H1_error = np.sqrt(L2_error_sq + H1_semi_error_sq)
